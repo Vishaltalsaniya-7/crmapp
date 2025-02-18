@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/Vishaltalsaniya-7/crmapp/config"
-	_ "github.com/Vishaltalsaniya-7/crmapp/models" // Import models to ensure registration
 	"github.com/beego/beego/v2/client/orm"
 	_ "github.com/go-sql-driver/mysql"
 )
@@ -21,11 +20,7 @@ func Connect() error {
 	if err := orm.RegisterDataBase("default", "mysql", connectionString); err != nil {
 		return fmt.Errorf("failed to register database: %v", err)
 	}
-
+	// orm.RegisterModel(new(models.User), new(models.Customer), new(models.Lead))
 	orm.Debug = true
 	return orm.RunSyncdb("default", false, true)
-}
-
-func GetDB() orm.Ormer {
-	return orm.NewOrm()
 }

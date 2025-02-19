@@ -26,8 +26,31 @@ func main() {
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 
+	//user
 	e.POST("/user", userController.CreateUser)
-	e.GET("/user",userController.GetAllUser)
+	e.GET("/user", userController.GetAllUser)
+	e.GET("/user/:id", userController.GetUserById)
+	e.PUT("/user/:id", userController.UpdateUser)
+	e.PATCH("/user/:id/role", userController.UpdateUserRole)
+	e.DELETE("/user/:id", userController.DeleteUser)
+
+	// customerManager := managers.NewCustomerManager()
+	// customermanager:=controller.NewCustomerController(customerManager)
+	//Customer
+	e.POST("/customer", controller.CreateCustomer)
+	e.GET("/customer", controller.GetAllCustomer)
+	e.GET("/customer/:id", controller.GetCustomerById) // Get Customer by ID
+
+	e.PUT("/customer/:id", controller.UpdateCustomer)
+	e.DELETE("/customer/:id", controller.DeleteCustomer)
+
+	// Lead
+	e.POST("/lead", controller.CreateLead)
+	e.GET("/lead", controller.GetLead)
+	e.PUT("/lead/:id", controller.UpdateLead)
+	e.PATCH("/lead/:id/status", controller.UpdateLeadStatus)
+	e.GET("/lead/:id", controller.GetLeadById)
+	e.DELETE("/lead/:id", controller.DeleteLead)
 
 	e.Logger.Fatal(e.Start(":8080"))
 

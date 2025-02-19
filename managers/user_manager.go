@@ -1,8 +1,10 @@
 package managers
 
 import (
+	"errors"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/Vishaltalsaniya-7/crmapp/models"
@@ -36,15 +38,15 @@ func (mn *UserMgr) CreateUser(req request.UserRequest) (response.UserResponse, e
 
 	log.Println("User does not exist, proceeding to create new user...")
 
-	currentTime := time.Now()
+	// currentTime := time.Now()
 
 	newUser := models.User{
-		Name:      req.Name,
+		Username:  req.Username,
 		Email:     req.Email,
 		Password:  req.Password,
 		Role:      req.Role,
-		CreatedAt: currentTime.Format("2006-01-02 15:04:05"),
-		UpdatedAt: currentTime.Format("2006-01-02 15:04:05"),
+		CreatedAt: time.Time{},
+		// UpdatedAt: currentTime.Format("2006-01-02 15:04:05"),
 	}
 
 	log.Println("Inserting new user into the database...")
@@ -56,31 +58,29 @@ func (mn *UserMgr) CreateUser(req request.UserRequest) (response.UserResponse, e
 
 	log.Println("User successfully inserted, parsing timestamps...")
 
-	createdAt, err := time.Parse("2006-01-02 15:04:05", newUser.CreatedAt)
-	if err != nil {
-		log.Printf("Error parsing CreatedAt: %v\n", err)
-		return response.UserResponse{}, err
-	}
+	// createdAt, err := time.Parse("2006-01-02 15:04:05", newUser.CreatedAt)
+	// if err != nil {
+	// 	log.Printf("Error parsing CreatedAt: %v\n", err)
+	// 	return response.UserResponse{}, err
+	// }
 
-	updatedAt, err := time.Parse("2006-01-02 15:04:05", newUser.UpdatedAt)
-	if err != nil {
-		log.Printf("Error parsing UpdatedAt: %v\n", err)
-		return response.UserResponse{}, err
-	}
+	// updatedAt, err := time.Parse("2006-01-02 15:04:05", newUser.UpdatedAt)
+	// if err != nil {
+	// 	log.Printf("Error parsing UpdatedAt: %v\n", err)
+	// 	return response.UserResponse{}, err
+	// }
 
 	userresponse := response.UserResponse{
-		ID:        newUser.Id,
-		Name:      newUser.Name,
+		Id:        newUser.Id,
+		Username:  newUser.Username,
 		Email:     newUser.Email,
 		Role:      newUser.Role,
-		CreatedAt: createdAt,
-		UpdatedAt: updatedAt,
+		CreatedAt: newUser.CreatedAt.Format("2006-01-02 15:04:05"),
 	}
 
 	log.Println("User creation successful, returning response.")
 	return userresponse, nil
 }
-
 
 func (mn *UserMgr) GetAllUser(pageSize int, pageNo int, order string, orderby string, searchQuery string, roleFilter string) ([]response.UserResponse, int, int, error) {
 	o := orm.NewOrm()
@@ -89,7 +89,6 @@ func (mn *UserMgr) GetAllUser(pageSize int, pageNo int, order string, orderby st
 
 	if searchQuery != "" {
 		query = query.Filter("name__icontains", searchQuery)
-		// .Filter("email__icontains", searchQuery)
 	}
 
 	if roleFilter != "" {
@@ -98,21 +97,27 @@ func (mn *UserMgr) GetAllUser(pageSize int, pageNo int, order string, orderby st
 
 	totalRecords, err := query.Count()
 	if err != nil {
+		log.Printf("Error counting users: %v", err)
 		return nil, 0, 0, fmt.Errorf("failed to count users: %v", err)
 	}
 
 	if order == "" {
-		order = "asc" // Default order
+		order = "asc"
 	}
 	if orderby == "" {
-		orderby = "id" // Default sorting by ID
+		orderby = "id"
 	}
-	orderByClause := fmt.Sprintf("%s %s", orderby, order)
+
+	orderByClause := orderby
+	if strings.ToLower(order) == "desc" {
+		orderByClause = "-" + orderby
+	}
 
 	offset := (pageNo - 1) * pageSize
 
 	_, err = query.OrderBy(orderByClause).Limit(pageSize, offset).All(&users)
 	if err != nil {
+		log.Printf("Error fetching users: %v", err)
 		return nil, 0, 0, fmt.Errorf("failed to fetch users: %v", err)
 	}
 
@@ -120,25 +125,112 @@ func (mn *UserMgr) GetAllUser(pageSize int, pageNo int, order string, orderby st
 
 	var userResponses []response.UserResponse
 	for _, user := range users {
-		createdAt, err := time.Parse("2006-01-02 15:04:05", user.CreatedAt)
-		if err != nil {
-			log.Printf("Error parsing CreatedAt: %v", err)
-			return nil, 0, 0, err
-		}
-		updatedAt, err := time.Parse("2006-01-02 15:04:05", user.UpdatedAt)
-		if err != nil {
-			log.Printf("Error parsing UpdatedAt: %v", err)
-			return nil, 0, 0, err
-		}
-
 		userResponses = append(userResponses, response.UserResponse{
-			ID:        user.Id,
-			Name:      user.Name,
+			Id:        user.Id,
+			Username:  user.Username,
 			Email:     user.Email,
 			Role:      user.Role,
-			CreatedAt: createdAt,			UpdatedAt: updatedAt,
+			CreatedAt: user.CreatedAt.Format("2006-01-02 15:04:05"),
 		})
 	}
 
 	return userResponses, lastPage, int(totalRecords), nil
+}
+
+func (mn *UserMgr) UpdateUser(id int, req request.UserRequest) (response.UserResponse, error) {
+	o := orm.NewOrm()
+
+	user := models.User{Id: id}
+	err := o.Read(&user)
+	if err == orm.ErrNoRows {
+		return response.UserResponse{}, fmt.Errorf("user not found")
+	} else if err != nil {
+		return response.UserResponse{}, fmt.Errorf("database error: %v", err)
+	}
+	user.Username = req.Username
+	user.Email = req.Email
+	user.Role = req.Role
+	user.Password = req.Password
+	// user.UpdatedAt = time.Now().Format("2006-01-02 15:04:05")
+
+	_, err = o.Update(&user)
+	if err != nil {
+		return response.UserResponse{}, fmt.Errorf("failed to update movie: %v", err)
+	}
+	responseUser := &response.UserResponse{
+		Id:        user.Id,
+		Username:  user.Username,
+		Email:     user.Email,
+		Role:      user.Role,
+		CreatedAt: user.CreatedAt.Format("2006-01-02 15:04:05"),
+	}
+
+	return *responseUser, nil
+}
+
+func (mn *UserMgr) DeleteUser(id int) error {
+	o := orm.NewOrm()
+	existingUser := models.User{Id: id}
+	if err := o.Read(&existingUser); err != nil {
+		if err == orm.ErrNoRows {
+			return errors.New("user not found")
+		}
+		return err
+	}
+	if _, err := o.Delete(&existingUser); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (mn *UserMgr) GetUserById(id int) (response.UserResponse, error) {
+	o := orm.NewOrm()
+	user := models.User{Id: id}
+
+	err := o.Read(&user)
+	if err == orm.ErrNoRows {
+		return response.UserResponse{}, fmt.Errorf("lead not found")
+	} else if err != nil {
+		return response.UserResponse{}, fmt.Errorf("database error: %v", err)
+	}
+
+	leadResponse := response.UserResponse{
+		Id:        user.Id,
+		Username:  user.Username,
+		Email:     user.Email,
+		Role:      user.Role,
+		CreatedAt: user.CreatedAt.Format("2006-01-02 15:04:05"),
+	}
+
+	return leadResponse, nil
+}
+func(mn *UserMgr)UpdateUserRole(id int,req request.UserRequest)(response.UserResponse,error){
+	o := orm.NewOrm()
+
+	user := models.User{Id: id}
+	err := o.Read(&user)
+	if err == orm.ErrNoRows {
+		return response.UserResponse{}, fmt.Errorf("user not found")
+	} else if err != nil {
+		return response.UserResponse{}, fmt.Errorf("database error: %v", err)
+	}
+	// user.Username = req.Username
+	// user.Email = req.Email
+	user.Role = req.Role
+	// user.Password = req.Password
+	// user.UpdatedAt = time.Now().Format("2006-01-02 15:04:05")
+
+	_, err = o.Update(&user)
+	if err != nil {
+		return response.UserResponse{}, fmt.Errorf("failed to update movie: %v", err)
+	}
+	responseUser := &response.UserResponse{
+		Id:        user.Id,
+		Username:  user.Username,
+		Email:     user.Email,
+		Role:      user.Role,
+		CreatedAt: user.CreatedAt.Format("2006-01-02 15:04:05"),
+	}
+
+	return *responseUser, nil
 }

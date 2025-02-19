@@ -1,7 +1,8 @@
 package request
 
-type CustomerRequest struct {
-	Name  string `json:"name" valid:"Required"`
-	Email string `json:"email" valid:"Required;Email"`
-	Phone string `json:"phone" valid:"Required"`
+type CreateCustomerRequest struct {
+    Name    string `json:"name" binding:"required"`
+    Email   string `json:"email" binding:"required,email"`
+    Phone   string `json:"phone" binding:"required"`
+    Address string `json:"address"`
 }

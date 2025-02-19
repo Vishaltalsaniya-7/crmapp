@@ -7,46 +7,35 @@ import (
 
 	"github.com/Vishaltalsaniya-7/crmapp/managers"
 	"github.com/Vishaltalsaniya-7/crmapp/request"
-	"github.com/go-playground/validator"
 	"github.com/labstack/echo/v4"
 )
 
-var validate = validator.New()
+func CreateLead(c echo.Context) error {
+	var leadRequest request.LeadRequest
 
-type UserCont struct {
-	managers *managers.UserMgr
-}
-
-func NewUserController(mn *managers.UserMgr) *UserCont {
-	return &UserCont{managers: mn}
-}
-func (us *UserCont) CreateUser(c echo.Context) error {
-	var req request.UserRequest
-
-	if err := c.Bind(&req); err != nil {
+	if err := c.Bind(&leadRequest); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid request payload"})
 	}
 	log.Println("req----->")
 
-	if err := validate.Struct(req); err != nil {
+	if err := validater.Struct(leadRequest); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
 	}
 
-	user, err := us.managers.CreateUser(req)
+	lead, err := managers.CreateLead(leadRequest)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
 	}
 
-	return c.JSON(http.StatusCreated, user)
+	return c.JSON(http.StatusCreated, lead)
 }
 
-func (us *UserCont) GetAllUser(c echo.Context) error {
+func GetLead(c echo.Context) error {
 	pageSize := c.QueryParam("per_page")
 	pageNo := c.QueryParam("page_no")
 	order := c.QueryParam("order")
 	orderby := c.QueryParam("orderby")
 	searchQuery := c.QueryParam("search")
-	roleFilter := c.QueryParam("role")
 
 	pageSizeInt, err := strconv.Atoi(pageSize)
 	if err != nil || pageSizeInt <= 0 {
@@ -57,7 +46,7 @@ func (us *UserCont) GetAllUser(c echo.Context) error {
 		pageNoInt = 1
 	}
 
-	users, lastPage, totalDocuments, err := us.managers.GetAllUser(pageSizeInt, pageNoInt, order, orderby, searchQuery, roleFilter)
+	lead, lastPage, totalDocuments, err := managers.GetLead(pageSizeInt, pageNoInt, order, orderby, searchQuery)
 	if err != nil {
 		log.Printf("Error fetching users: %v", err)
 
@@ -69,80 +58,83 @@ func (us *UserCont) GetAllUser(c echo.Context) error {
 		"per_page":        pageSizeInt,
 		"last_page":       lastPage,
 		"total_documents": totalDocuments,
-		"users":           users,
+		"lead":            lead,
 	})
 }
 
-func (us *UserCont) UpdateUser(c echo.Context) error {
+func UpdateLead(c echo.Context) error {
 	idparam := c.Param("id")
 	id, err := strconv.Atoi(idparam)
+
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid User ID"})
 	}
-	var req request.UserRequest
+	var req request.LeadRequest
 	if err := c.Bind(&req); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid request payload"})
 	}
 	if err := validate.Struct(req); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
 	}
-	updateduser, err := us.managers.UpdateUser(id, req)
+	updatelead, err := managers.UpdateLead(id, req)
 	if err != nil {
 
-		return c.JSON(http.StatusNotFound, map[string]string{"error": "User Not Found"})
+		return c.JSON(http.StatusNotFound, map[string]string{"error": "Lead Not Found"})
 
 	}
 
-	return c.JSON(http.StatusOK, updateduser)
+	return c.JSON(http.StatusOK, updatelead)
 }
 
-func (us *UserCont) DeleteUser(c echo.Context) error {
-	idparam := c.Param("id")
-	id, err := strconv.Atoi(idparam)
-	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid User ID"})
-	}
-
-	if err := us.managers.DeleteUser(id); err != nil {
-
-		return c.JSON(http.StatusNotFound, map[string]string{"error": "user not found"})
-
-	}
-	return c.JSON(http.StatusOK, map[string]string{"message": "Useer successfully deleted"})
-}
-
-func(us *UserCont) GetUserById(c echo.Context) error{
+func GetLeadById(c echo.Context) error {
 	idparam := c.Param("id")
 	id, err := strconv.Atoi(idparam)
 
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid User ID"})
 	}
-	leadResponse, err := us.managers.GetUserById(id)
+	leadResponse, err := managers.GetLeadById(id)
 	if err != nil {
 		return c.JSON(http.StatusNotFound, map[string]string{"error": "Lead not found"})
 	}
 	return c.JSON(http.StatusOK, leadResponse)
+
 }
-func(us *UserCont)UpdateUserRole(c echo.Context) error{
+
+func DeleteLead(c echo.Context) error {
+	idparam := c.Param("id")
+	id, err := strconv.Atoi(idparam)
+
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid customer ID"})
+	}
+
+	if err := managers.DeleteLead(id); err != nil {
+		return c.JSON(http.StatusNotFound, map[string]string{"error": "lead not found"})
+	}
+	return c.JSON(http.StatusOK, map[string]string{"message": "Useer successfully deleted"})
+
+}
+
+func UpdateLeadStatus( c echo.Context) error{
 	idparam := c.Param("id")
 	id, err := strconv.Atoi(idparam)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid User ID"})
 	}
-	var req request.UserRequest
+	var req request.LeadRequest
 	if err := c.Bind(&req); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid request payload"})
 	}
 	if err := validate.Struct(req); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
 	}
-	updateduser, err := us.managers.UpdateUserRole(id, req)
+	updatedlead, err := managers.UpdateLeadStatus(id,req)
 	if err != nil {
 
-		return c.JSON(http.StatusNotFound, map[string]string{"error": "User Not Found"})
+		return c.JSON(http.StatusNotFound, map[string]string{"error": "lead Not Found"})
 
 	}
 
-	return c.JSON(http.StatusOK, updateduser)	
+	return c.JSON(http.StatusOK, updatedlead)		
 }

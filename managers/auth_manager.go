@@ -1,34 +1,43 @@
 package managers
 
-// import (
-// 	"errors"
-// 	"time"
+import (
+	"github.com/Vishaltalsaniya-7/crmapp/models"
+	"github.com/Vishaltalsaniya-7/crmapp/utils"
+	"github.com/beego/beego/v2/client/orm"
+	"golang.org/x/crypto/bcrypt"
+)
 
-// 	"github.com/Vishaltalsaniya-7/crmapp/models"
-// 	"github.com/dgrijalva/jwt-go"
-// 	"golang.org/x/crypto/bcrypt"
-// )
+func RegisterUser(username, email, password string) error {
+	o := orm.NewOrm()
 
-// func AuthenticateUser(email, password string) (string, error) {
-// 	var user models.User
-// 	err := models.GetDB().QueryTable("user").Filter("email", email).One(&user)
-// 	if err != nil {
-// 		return "", errors.New("User not found")
-// 	}
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
 
-// 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
-// 		return "", errors.New("Invalid credentials")
-// 	}
+	user := models.AuthRequest{
+		Username: username,
+		Email:    email,
+		Password: string(hashedPassword),
+	}
 
-// 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-// 		"sub": user.ID,
-// 		"exp": time.Now().Add(time.Hour * 24).Unix(),
-// 	})
+	_, err = o.Insert(&user)
+	return err
+}
 
-// 	tokenString, err := token.SignedString([]byte("123456"))
-// 	if err != nil {
-// 		return "", errors.New("Error generating token")
-// 	}
+func AuthenticateUser(email, password string) (string, error) {
+	o := orm.NewOrm()
+	user := models.AuthRequest{}
 
-// 	return tokenString, nil
-// }
+	err := o.QueryTable("AuthRequest").Filter("Email", email).One(&user)
+	if err != nil {
+		return "", err
+	}
+
+	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
+	if err != nil {
+		return "", err
+	}
+
+	return utils.GenerateJWT(user.Email, user.Username)
+}

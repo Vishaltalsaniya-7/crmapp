@@ -34,6 +34,12 @@ func main() {
 	e.PATCH("/user/:id/role", userController.UpdateUserRole)
 	e.DELETE("/user/:id", userController.DeleteUser)
 
+	//auth
+	e.POST("/register", controller.Register)
+	e.POST("/login", controller.Login)
+
+	
+
 	// customerManager := managers.NewCustomerManager()
 	// customermanager:=controller.NewCustomerController(customerManager)
 	//Customer

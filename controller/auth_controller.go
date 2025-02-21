@@ -1,47 +1,37 @@
- package controller
+package controller
 
-// import (
-// 	"net/http"
+import (
+	"net/http"
 
-// 	"github.com/Vishaltalsaniya-7/crmapp/managers"
-// 	"github.com/Vishaltalsaniya-7/crmapp/request"
-// 	"github.com/Vishaltalsaniya-7/crmapp/response"
-// 	"github.com/astaxie/beego/validation"
-// 	"github.com/beego/beego/v2/server/web"
-// )
+	"github.com/Vishaltalsaniya-7/crmapp/managers"
+	"github.com/Vishaltalsaniya-7/crmapp/models"
+	"github.com/labstack/echo/v4"
+)
 
-// type AuthController struct {
-// 	web.Controller
-// }
+func Register(c echo.Context) error {
+	req := new(models.AuthRequest)
+	if err := c.Bind(req); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid request"})
+	}
 
-// func (c *AuthController) Login() {
-// 	var req request.SessionRequest
-// 	if err := c.ParseForm(&req); err != nil {
-// 		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadRequest)
-// 		c.Data["json"] = map[string]interface{}{"error": "Invalid request"}
-// 		c.ServeJSON()
-// 		return
-// 	}
+	err := managers.RegisterUser(req.Username, req.Email, req.Password)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "User registration failed"})
+	}
 
-// 	// Validate input
-// 	valid := validation.Validation{}
-// 	if v, _ := valid.Valid(&req); !v {
-// 		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadRequest)
-// 		c.Data["json"] = map[string]interface{}{"error": "Validation failed", "details": valid.Errors}
-// 		c.ServeJSON()
-// 		return
-// 	}
+	return c.JSON(http.StatusOK, map[string]string{"message": "User registered successfully"})
+}
 
-// 	// Call manager to authenticate and generate JWT token
-// 	expires_at,token, err := managers.AuthenticateUser(req.Email, req.Password)
-// 	if err != nil {
-// 		c.Ctx.ResponseWriter.WriteHeader(http.StatusUnauthorized)
-// 		c.Data["json"] = map[string]interface{}{"error": err.Error()}
-// 		c.ServeJSON()
-// 		return
-// 	}
+func Login(c echo.Context) error {
+	req := new(models.AuthRequest)
+	if err := c.Bind(req); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid request"})
+	}
 
-// 	// Respond with token
-// 	c.Data["json"] = response.SessionResponse{Token: token,ExpiresAt: expires_at}
-// 	c.ServeJSON()
-// }
+	token, err := managers.AuthenticateUser(req.Email, req.Password)
+	if err != nil {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Invalid credentials"})
+	}
+
+	return c.JSON(http.StatusOK, map[string]string{"token": token})
+}

@@ -15,6 +15,33 @@ type User struct {
 	CreatedAt time.Time `json:"created_at" orm:"auto_now_add;type(datetime)"`
 }
 
+type AuthRequest struct {
+	Username string `json:"username"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+func init() {
+	orm.RegisterModel(new(AuthRequest))
+}
+
+// func (user *User) HashPassword(password string) error {
+// 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	user.Password = string(bytes)
+// 	return nil
+// }
+
+// func (user *User) CheckPassword(providedPassword string) error {
+// 	err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(providedPassword))
+// 	if err != nil {
+// 		return err
+// 	}
+// 	return nil
+// }
+
 // type Customer struct {
 // 	ID        int       `json:"id" orm:"auto"`
 //     Name      string    `json:"name" orm:"size(255);"`

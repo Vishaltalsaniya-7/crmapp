@@ -14,6 +14,7 @@ import (
 var validater = validator.New()
 
 func CreateCustomer(c echo.Context) error {
+	
 	var customerRequest request.CreateCustomerRequest
 
 	if err := c.Bind(&customerRequest); err != nil {
@@ -103,7 +104,7 @@ func DeleteCustomer(c echo.Context) error {
 	return c.JSON(http.StatusOK, map[string]string{"message": "Useer successfully deleted"})
 }
 
-func GetCustomerById(c echo.Context) error{
+func GetCustomerById(c echo.Context) error {
 	idparam := c.Param("id")
 	id, err := strconv.Atoi(idparam)
 

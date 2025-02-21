@@ -1,6 +1,13 @@
 package request
 
-type SessionRequest struct {
-	Email    string `json:"email" valid:"Required;Email"`
-	Password string `json:"password" valid:"Required"`
-}
+// import "github.com/beego/beego/orm"
+
+// type AuthRequest struct {
+// 	Username string `json:"username"`
+// 	Email    string `json:"email"`
+// 	Password string `json:"password"`
+// }
+
+// func init() {
+// 	orm.RegisterModel(new(AuthRequest))
+// }

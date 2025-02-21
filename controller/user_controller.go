@@ -21,6 +21,10 @@ func NewUserController(mn *managers.UserMgr) *UserCont {
 	return &UserCont{managers: mn}
 }
 func (us *UserCont) CreateUser(c echo.Context) error {
+	userEmail, ok := c.Get("user_email").(string)
+	if !ok || userEmail == "" {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Unauthorized"})
+	}
 	var req request.UserRequest
 
 	if err := c.Bind(&req); err != nil {

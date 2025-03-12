@@ -4,41 +4,44 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Button,
   TextField,
-  Grid,
+  Button,
   FormControl,
   InputLabel,
   Select,
   MenuItem,
-  InputAdornment
 } from '@mui/material';
 
-const CustomerForm = ({ open, onClose, onSubmit, initialData = null }) => {
+// Remove the import of CustomerForm since we're defining it here
+
+const CustomerForm = ({ open, onClose, onSubmit, customer }) => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     phone: '',
     company: '',
-    status: 'active',
-    value: '',
-    address: '',
-    industry: '',
-    notes: ''
+    status: 'active'
   });
 
   useEffect(() => {
-    if (initialData) {
-      setFormData(initialData);
+    if (customer) {
+      setFormData(customer);
+    } else {
+      setFormData({
+        name: '',
+        email: '',
+        phone: '',
+        company: '',
+        status: 'active'
+      });
     }
-  }, [initialData]);
+  }, [customer]);
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    });
   };
 
   const handleSubmit = (e) => {
@@ -47,118 +50,65 @@ const CustomerForm = ({ open, onClose, onSubmit, initialData = null }) => {
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle>
-        {initialData ? 'Edit Customer' : 'Add New Customer'}
-      </DialogTitle>
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+      <DialogTitle>{customer ? 'Edit Customer' : 'Add Customer'}</DialogTitle>
       <form onSubmit={handleSubmit}>
         <DialogContent>
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Name"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                required
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Company"
-                name="company"
-                value={formData.company}
-                onChange={handleChange}
-                required
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Email"
-                name="email"
-                type="email"
-                value={formData.email}
-                onChange={handleChange}
-                required
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Phone"
-                name="phone"
-                value={formData.phone}
-                onChange={handleChange}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth>
-                <InputLabel>Status</InputLabel>
-                <Select
-                  name="status"
-                  value={formData.status}
-                  onChange={handleChange}
-                  label="Status"
-                >
-                  <MenuItem value="active">Active</MenuItem>
-                  <MenuItem value="inactive">Inactive</MenuItem>
-                  <MenuItem value="pending">Pending</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Industry"
-                name="industry"
-                value={formData.industry}
-                onChange={handleChange}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Value"
-                name="value"
-                type="number"
-                value={formData.value}
-                onChange={handleChange}
-                InputProps={{
-                  startAdornment: <InputAdornment position="start">$</InputAdornment>,
-                }}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Address"
-                name="address"
-                multiline
-                rows={2}
-                value={formData.address}
-                onChange={handleChange}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Notes"
-                name="notes"
-                multiline
-                rows={3}
-                value={formData.notes}
-                onChange={handleChange}
-              />
-            </Grid>
-          </Grid>
+          <TextField
+            margin="dense"
+            name="name"
+            label="Name"
+            fullWidth
+            value={formData.name}
+            onChange={handleChange}
+            required
+          />
+          <TextField
+            margin="dense"
+            name="email"
+            label="Email"
+            type="email"
+            fullWidth
+            value={formData.email}
+            onChange={handleChange}
+            required
+          />
+          <TextField
+            margin="dense"
+            name="phone"
+            label="Phone"
+            fullWidth
+            value={formData.phone}
+            onChange={handleChange}
+            required
+          />
+          <TextField
+            margin="dense"
+            name="company"
+            label="Company"
+            fullWidth
+            value={formData.company}
+            onChange={handleChange}
+            required
+          />
+          <FormControl fullWidth margin="dense">
+            <InputLabel id="status-label">Status</InputLabel>
+            <Select
+              labelId="status-label"
+              name="status"
+              value={formData.status}
+              onChange={handleChange}
+              label="Status"
+            >
+              <MenuItem value="active">Active</MenuItem>
+              <MenuItem value="inactive">Inactive</MenuItem>
+            </Select>
+          </FormControl>
         </DialogContent>
         <DialogActions>
           <Button onClick={onClose}>Cancel</Button>
           <Button type="submit" variant="contained" color="primary">
-            {initialData ? 'Update' : 'Create'}
+            {customer ? 'Update' : 'Add'}
           </Button>
         </DialogActions>
       </form>
@@ -167,7 +117,6 @@ const CustomerForm = ({ open, onClose, onSubmit, initialData = null }) => {
 };
 
 export default CustomerForm;
-
 // import React, { useState, useEffect } from 'react';
 // import {
 //   Dialog,

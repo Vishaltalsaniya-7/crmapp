@@ -33,7 +33,9 @@ const Customers = () => {
       phone: '123-456-7890',
       company: 'Tech Corp',
       status: 'active',
-      value: 50000
+      leads: 5
+
+
     },
     {
       id: 2,
@@ -42,7 +44,8 @@ const Customers = () => {
       phone: '098-765-4321',
       company: 'Design Co',
       status: 'inactive',
-      value: 25000
+      leads: 3
+
     }
   ]);
   const [openForm, setOpenForm] = useState(false);
@@ -124,7 +127,7 @@ const Customers = () => {
               <TableCell>Contact</TableCell>
               <TableCell>Company</TableCell>
               <TableCell>Status</TableCell>
-              <TableCell>Value</TableCell>
+              <TableCell>Leads</TableCell>
               <TableCell align="right">Actions</TableCell>
             </TableRow>
           </TableHead>
@@ -154,7 +157,13 @@ const Customers = () => {
                     size="small"
                   />
                 </TableCell>
-                <TableCell>${customer.value?.toLocaleString()}</TableCell>
+                <TableCell>
+                  <Chip 
+                    label={`${customer.leads} leads`}
+                    color="info"
+                    size="small"
+                  />
+                </TableCell>
                 <TableCell align="right">
                   <Tooltip title="Edit">
                     <IconButton 
@@ -183,8 +192,7 @@ const Customers = () => {
           </TableBody>
         </Table>
       </TableContainer>
-
-      <CustomerForm
+            <CustomerForm
         open={openForm}
         onClose={() => {
           setOpenForm(false);

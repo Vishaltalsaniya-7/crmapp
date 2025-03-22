@@ -1,17 +1,17 @@
 import React from 'react';
 import { Snackbar, Alert } from '@mui/material';
 
-const Notification = ({ open, message, severity, onClose }) => {
+const Notification = ({ open, message, severity = 'success', onClose, duration = 6000 }) => {
   return (
     <Snackbar
       open={open}
-      autoHideDuration={6000}
+      autoHideDuration={duration}
       onClose={onClose}
       anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
     >
       <Alert 
         onClose={onClose} 
-        severity={severity} 
+        severity={severity}
         variant="filled"
         sx={{ width: '100%' }}
       >

@@ -6,81 +6,162 @@ import {
   DialogActions,
   TextField,
   Button,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Grid,
 } from '@mui/material';
 
-const CustomerForm = ({ open, onClose, onSubmit, customer }) => {
+const CustomerForm = ({ open, customer, onClose, onSubmit }) => {
   const [formData, setFormData] = useState({
     name: '',
+    company: '',
     email: '',
     phone: '',
-    company: '',
+    address: '',
+    type: 'Individual',
+    status: 'Active',
+    notes: '',
   });
 
   useEffect(() => {
     if (customer) {
-      setFormData(customer);
+      setFormData({
+        name: customer.name || '',
+        company: customer.company || '',
+        email: customer.email || '',
+        phone: customer.phone || '',
+        address: customer.address || '',
+        type: customer.type || 'Individual',
+        status: customer.status || 'Active',
+        notes: customer.notes || '',
+      });
+    } else {
+      setFormData({
+        name: '',
+        company: '',
+        email: '',
+        phone: '',
+        address: '',
+        type: 'Individual',
+        status: 'Active',
+        notes: '',
+      });
     }
   }, [customer]);
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
     onSubmit(formData);
-    setFormData({ name: '', email: '', phone: '', company: '' });
   };
 
   return (
-    <Dialog open={open} onClose={onClose}>
-      <DialogTitle>{customer ? 'Edit Customer' : 'Add Customer'}</DialogTitle>
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+      <DialogTitle>
+        {customer ? 'Edit Customer' : 'Add New Customer'}
+      </DialogTitle>
       <form onSubmit={handleSubmit}>
         <DialogContent>
-          <TextField
-            autoFocus
-            margin="dense"
-            name="name"
-            label="Name"
-            type="text"
-            fullWidth
-            value={formData.name}
-            onChange={handleChange}
-            required
-          />
-          <TextField
-            margin="dense"
-            name="email"
-            label="Email"
-            type="email"
-            fullWidth
-            value={formData.email}
-            onChange={handleChange}
-            required
-          />
-          <TextField
-            margin="dense"
-            name="phone"
-            label="Phone"
-            type="text"
-            fullWidth
-            value={formData.phone}
-            onChange={handleChange}
-            required
-          />
-          <TextField
-            margin="dense"
-            name="company"
-            label="Company"
-            type="text"
-            fullWidth
-            value={formData.company}
-            onChange={handleChange}
-            required
-          />
+          <Grid container spacing={2}>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                label="Name"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                required
+                fullWidth
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                label="Company"
+                name="company"
+                value={formData.company}
+                onChange={handleChange}
+                fullWidth
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                label="Email"
+                name="email"
+                type="email"
+                value={formData.email}
+                onChange={handleChange}
+                required
+                fullWidth
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                label="Phone"
+                name="phone"
+                value={formData.phone}
+                onChange={handleChange}
+                fullWidth
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                label="Address"
+                name="address"
+                value={formData.address}
+                onChange={handleChange}
+                multiline
+                rows={2}
+                fullWidth
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth>
+                <InputLabel>Type</InputLabel>
+                <Select
+                  name="type"
+                  value={formData.type}
+                  onChange={handleChange}
+                  label="Type"
+                >
+                  <MenuItem value="Individual">Individual</MenuItem>
+                  <MenuItem value="Company">Company</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth>
+                <InputLabel>Status</InputLabel>
+                <Select
+                  name="status"
+                  value={formData.status}
+                  onChange={handleChange}
+                  label="Status"
+                >
+                  <MenuItem value="Active">Active</MenuItem>
+                  <MenuItem value="Inactive">Inactive</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                label="Notes"
+                name="notes"
+                value={formData.notes}
+                onChange={handleChange}
+                multiline
+                rows={3}
+                fullWidth
+              />
+            </Grid>
+          </Grid>
         </DialogContent>
         <DialogActions>
           <Button onClick={onClose}>Cancel</Button>

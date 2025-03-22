@@ -16,9 +16,13 @@
     "@emotion/styled": "^11.14.0",
     "@mui/icons-material": "^6.4.7",
     "@mui/material": "^6.4.7",
+    "@mui/x-date-pickers": "^7.27.3",
     "axios": "^1.8.2",
+    "date-fns": "^4.1.0",
+    "react-big-calendar": "^1.18.0",
     "react-router-dom": "^6.30.0",
-    "react-scripts": "^5.0.1"
+    "react-scripts": "^5.0.1",
+    "recharts": "^2.15.1"
   },
   "browserslist": {
     "production": [

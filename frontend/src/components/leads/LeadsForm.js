@@ -4,34 +4,55 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Button,
   TextField,
-  Grid,
-  MenuItem,
+  Button,
   FormControl,
   InputLabel,
   Select,
-  InputAdornment
+  MenuItem,
+  Grid,
 } from '@mui/material';
 
-const LeadForm = ({ open, onClose, onSubmit, initialData = null }) => {
+const LeadForm = ({ open, lead, onClose, onSubmit }) => {
   const [formData, setFormData] = useState({
+    name: '',
     company: '',
-    contactPerson: '',
     email: '',
     phone: '',
-    status: 'new',
-    priority: 'medium',
-    potentialValue: '',
+    status: 'Warm',
+    source: 'Website',
     notes: '',
-    progress: 0
+    budget: '',
+    expectedClosingDate: '',
   });
 
   useEffect(() => {
-    if (initialData) {
-      setFormData(initialData);
+    if (lead) {
+      setFormData({
+        name: lead.name || '',
+        company: lead.company || '',
+        email: lead.email || '',
+        phone: lead.phone || '',
+        status: lead.status || 'Warm',
+        source: lead.source || 'Website',
+        notes: lead.notes || '',
+        budget: lead.budget || '',
+        expectedClosingDate: lead.expectedClosingDate || '',
+      });
+    } else {
+      setFormData({
+        name: '',
+        company: '',
+        email: '',
+        phone: '',
+        status: 'Warm',
+        source: 'Website',
+        notes: '',
+        budget: '',
+        expectedClosingDate: '',
+      });
     }
-  }, [initialData]);
+  }, [lead]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -44,55 +65,53 @@ const LeadForm = ({ open, onClose, onSubmit, initialData = null }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
     onSubmit(formData);
-    onClose();
   };
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle>
-        {initialData ? 'Edit Lead' : 'Add New Lead'}
+        {lead ? 'Edit Lead' : 'Add New Lead'}
       </DialogTitle>
       <form onSubmit={handleSubmit}>
         <DialogContent>
           <Grid container spacing={2}>
             <Grid item xs={12} sm={6}>
               <TextField
+                label="Name"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                required
                 fullWidth
-                label="Company Name"
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                label="Company"
                 name="company"
                 value={formData.company}
                 onChange={handleChange}
-                required
+                fullWidth
               />
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
-                fullWidth
-                label="Contact Person"
-                name="contactPerson"
-                value={formData.contactPerson}
-                onChange={handleChange}
-                required
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
                 label="Email"
                 name="email"
                 type="email"
                 value={formData.email}
                 onChange={handleChange}
                 required
+                fullWidth
               />
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
-                fullWidth
                 label="Phone"
                 name="phone"
                 value={formData.phone}
                 onChange={handleChange}
+                fullWidth
               />
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -104,76 +123,68 @@ const LeadForm = ({ open, onClose, onSubmit, initialData = null }) => {
                   onChange={handleChange}
                   label="Status"
                 >
-                  <MenuItem value="new">New</MenuItem>
-                  <MenuItem value="contacted">Contacted</MenuItem>
-                  <MenuItem value="qualified">Qualified</MenuItem>
-                  <MenuItem value="won">Won</MenuItem>
-                  <MenuItem value="lost">Lost</MenuItem>
+                  <MenuItem value="Hot">Hot</MenuItem>
+                  <MenuItem value="Warm">Warm</MenuItem>
+                  <MenuItem value="Cold">Cold</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
             <Grid item xs={12} sm={6}>
               <FormControl fullWidth>
-                <InputLabel>Priority</InputLabel>
+                <InputLabel>Source</InputLabel>
                 <Select
-                  name="priority"
-                  value={formData.priority}
+                  name="source"
+                  value={formData.source}
                   onChange={handleChange}
-                  label="Priority"
+                  label="Source"
                 >
-                  <MenuItem value="high">High</MenuItem>
-                  <MenuItem value="medium">Medium</MenuItem>
-                  <MenuItem value="low">Low</MenuItem>
+                  <MenuItem value="Website">Website</MenuItem>
+                  <MenuItem value="Referral">Referral</MenuItem>
+                  <MenuItem value="Social Media">Social Media</MenuItem>
+                  <MenuItem value="Other">Other</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
-                fullWidth
-                label="Potential Value"
-                name="potentialValue"
+                label="Budget"
+                name="budget"
                 type="number"
-                value={formData.potentialValue}
+                value={formData.budget}
                 onChange={handleChange}
-                InputProps={{
-                  startAdornment: <InputAdornment position="start">$</InputAdornment>,
-                }}
+                fullWidth
               />
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
-                fullWidth
-                label="Progress"
-                name="progress"
-                type="number"
-                value={formData.progress}
+                label="Expected Closing Date"
+                name="expectedClosingDate"
+                type="date"
+                value={formData.expectedClosingDate}
                 onChange={handleChange}
-                InputProps={{
-                  endAdornment: <InputAdornment position="end">%</InputAdornment>,
+                InputLabelProps={{
+                  shrink: true,
                 }}
-                inputProps={{
-                  min: 0,
-                  max: 100
-                }}
+                fullWidth
               />
             </Grid>
             <Grid item xs={12}>
               <TextField
-                fullWidth
                 label="Notes"
                 name="notes"
-                multiline
-                rows={4}
                 value={formData.notes}
                 onChange={handleChange}
+                multiline
+                rows={3}
+                fullWidth
               />
             </Grid>
           </Grid>
         </DialogContent>
         <DialogActions>
           <Button onClick={onClose}>Cancel</Button>
-          <Button type="submit" variant="contained" color="primary">
-            {initialData ? 'Update' : 'Create'}
+          <Button type="submit" variant="contained">
+            {lead ? 'Update' : 'Add'}
           </Button>
         </DialogActions>
       </form>

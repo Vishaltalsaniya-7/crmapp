@@ -1,365 +1,235 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Typography,
-  IconButton,
-  Tooltip,
   Button,
-  Chip
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  IconButton,
+  Typography,
+  Paper,
 } from '@mui/material';
 import {
+  Add as AddIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
-  Add as AddIcon,
-  Phone as PhoneIcon,
-  Email as EmailIcon
 } from '@mui/icons-material';
-import CustomerForm from '../../components/customers/CustomerForm';
-import Notification from '../../components/common/Notification';
+import DataTable from '../../components/common/DataTable';
 
 const Customers = () => {
-  const [customers, setCustomers] = useState([
-    {
-      id: 1,
-      name: 'John Doe',
-      email: 'john@example.com',
-      phone: '123-456-7890',
-      company: 'Tech Corp',
-      status: 'active',
-      leads: 5
-
-
-    },
-    {
-      id: 2,
-      name: 'Jane Smith',
-      email: 'jane@example.com',
-      phone: '098-765-4321',
-      company: 'Design Co',
-      status: 'inactive',
-      leads: 3
-
-    }
-  ]);
-  const [openForm, setOpenForm] = useState(false);
-  const [selectedCustomer, setSelectedCustomer] = useState(null);
-  const [notification, setNotification] = useState({
-    open: false,
-    message: '',
-    severity: 'success'
+  const [customers, setCustomers] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    company: '',
+    address: '',
   });
+  const [isEditing, setIsEditing] = useState(false);
 
-  const showNotification = (message, severity = 'success') => {
-    setNotification({
-      open: true,
-      message,
-      severity
+  const handleEdit = (customer) => {
+    setFormData({
+      id: customer.id,
+      name: customer.name,
+      email: customer.email,
+      phone: customer.phone,
+      company: customer.company,
+      address: customer.address,
     });
+    setIsEditing(true);
+    setOpen(true);
   };
 
-  const handleCloseNotification = () => {
-    setNotification(prev => ({ ...prev, open: false }));
+  const handleClose = () => {
+    setOpen(false);
+    setFormData({
+      name: '',
+      email: '',
+      phone: '',
+      company: '',
+      address: '',
+    });
+    setIsEditing(false);
   };
 
-  const handleAddCustomer = (formData) => {
+  const fetchCustomers = async () => {
     try {
-      const newCustomer = {
-        ...formData,
-        id: customers.length + 1
+      setLoading(true);
+      const response = await fetch('http://localhost:8082/customer');
+      if (!response.ok) {
+        throw new Error('Failed to fetch customers');
+      }
+      const data = await response.json();
+      setCustomers(data.customers || []);
+    } catch (error) {
+      console.error('Error fetching customers:', error);
+      setCustomers([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCustomers();
+  }, []);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const url = isEditing 
+        ? `http://localhost:8082/customer/${formData.id}`
+        : 'http://localhost:8082/customer';
+      
+      const requestBody = {
+        id: isEditing ? parseInt(formData.id) : undefined,
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        company: formData.company || "",
+        address: formData.address || "",
       };
-      setCustomers([...customers, newCustomer]);
-      setOpenForm(false);
-      showNotification('Customer added successfully');
+      
+      const response = await fetch(url, {
+        method: isEditing ? 'PUT' : 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to save customer');
+      }
+
+      await fetchCustomers();
+      handleClose();
     } catch (error) {
-      showNotification('Error adding customer', 'error');
+      console.error('Error saving customer:', error);
+      alert(error.message);
     }
   };
 
-  const handleEditCustomer = (formData) => {
-    try {
-      setCustomers(customers.map(customer => 
-        customer.id === selectedCustomer.id ? { ...formData, id: customer.id } : customer
-      ));
-      setSelectedCustomer(null);
-      setOpenForm(false);
-      showNotification('Customer updated successfully');
-    } catch (error) {
-      showNotification('Error updating customer', 'error');
-    }
-  };
-
-  const handleDelete = (customerId) => {
+  const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this customer?')) {
       try {
-        setCustomers(customers.filter(customer => customer.id !== customerId));
-        showNotification('Customer deleted successfully');
+        const response = await fetch(`http://localhost:8082/customer/${id}`, {
+          method: 'DELETE',
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to delete customer');
+        }
+
+        await fetchCustomers();
       } catch (error) {
-        showNotification('Error deleting customer', 'error');
+        console.error('Error deleting customer:', error);
       }
     }
   };
 
+  const columns = [
+    { id: 'name', label: 'Name' },
+    { id: 'email', label: 'Email' },
+    { id: 'phone', label: 'Phone' },
+    { id: 'company', label: 'Company' },
+    {
+      id: 'actions',
+      label: 'Actions',
+      render: (_, customer) => (
+        <Box>
+          <IconButton size="small" onClick={() => handleEdit(customer)}>
+            <EditIcon />
+          </IconButton>
+          <IconButton size="small" color="error" onClick={() => handleDelete(customer.id)}>
+            <DeleteIcon />
+          </IconButton>
+        </Box>
+      ),
+    },
+  ];
+
   return (
     <Box sx={{ p: 3 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
-        <Typography variant="h4">Customer Management</Typography>
+        <Typography variant="h5">Customers</Typography>
         <Button
           variant="contained"
           startIcon={<AddIcon />}
-          onClick={() => setOpenForm(true)}
+          onClick={() => setOpen(true)}
         >
           Add Customer
         </Button>
       </Box>
 
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>Name</TableCell>
-              <TableCell>Contact</TableCell>
-              <TableCell>Company</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell>Leads</TableCell>
-              <TableCell align="right">Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {customers.map((customer) => (
-              <TableRow key={customer.id}>
-                <TableCell>{customer.name}</TableCell>
-                <TableCell>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Tooltip title={customer.phone}>
-                      <IconButton size="small" sx={{ color: 'primary.main' }}>
-                        <PhoneIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title={customer.email}>
-                      <IconButton size="small" sx={{ color: 'primary.main' }}>
-                        <EmailIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                  </Box>
-                </TableCell>
-                <TableCell>{customer.company}</TableCell>
-                <TableCell>
-                  <Chip 
-                    label={customer.status}
-                    color={customer.status === 'active' ? 'success' : 'default'}
-                    size="small"
-                  />
-                </TableCell>
-                <TableCell>
-                  <Chip 
-                    label={`${customer.leads} leads`}
-                    color="info"
-                    size="small"
-                  />
-                </TableCell>
-                <TableCell align="right">
-                  <Tooltip title="Edit">
-                    <IconButton 
-                      onClick={() => {
-                        setSelectedCustomer(customer);
-                        setOpenForm(true);
-                      }}
-                      size="small"
-                      sx={{ color: 'primary.main', mr: 1 }}
-                    >
-                      <EditIcon fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title="Delete">
-                    <IconButton 
-                      onClick={() => handleDelete(customer.id)}
-                      size="small"
-                      sx={{ color: 'error.main' }}
-                    >
-                      <DeleteIcon fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-            <CustomerForm
-        open={openForm}
-        onClose={() => {
-          setOpenForm(false);
-          setSelectedCustomer(null);
-        }}
-        onSubmit={selectedCustomer ? handleEditCustomer : handleAddCustomer}
-        initialData={selectedCustomer}
-      />
+      <Paper sx={{ width: '100%', overflow: 'hidden' }}>
+        <DataTable
+          columns={columns}
+          data={customers}
+          loading={loading}
+        />
+      </Paper>
 
-      <Notification
-        open={notification.open}
-        message={notification.message}
-        severity={notification.severity}
-        onClose={handleCloseNotification}
-      />
+      <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
+        <DialogTitle>{isEditing ? 'Edit Customer' : 'Add Customer'}</DialogTitle>
+        <form onSubmit={handleSubmit}>
+          <DialogContent>
+            <TextField
+              margin="dense"
+              label="Name"
+              fullWidth
+              required
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            />
+            <TextField
+              margin="dense"
+              label="Email"
+              type="email"
+              fullWidth
+              required
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+            />
+            <TextField
+              margin="dense"
+              label="Phone"
+              fullWidth
+              required
+              value={formData.phone}
+              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+            />
+            <TextField
+              margin="dense"
+              label="Company"
+              fullWidth
+              value={formData.company}
+              onChange={(e) => setFormData({ ...formData, company: e.target.value })}
+            />
+            <TextField
+              margin="dense"
+              label="Address"
+              fullWidth
+              multiline
+              rows={3}
+              value={formData.address}
+              onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleClose}>Cancel</Button>
+            <Button type="submit" variant="contained">
+              {isEditing ? 'Update' : 'Add'}
+            </Button>
+          </DialogActions>
+        </form>
+      </Dialog>
     </Box>
   );
 };
+
 export default Customers;
-// import React, { useState, useEffect } from 'react';// import {
-// //   Box,
-// //   Paper,
-// //   Table,
-// //   TableBody,
-// //   TableCell,
-// //   TableContainer,
-// //   TableHead,
-// //   TableRow,
-// //   Typography,
-// //   IconButton,
-// //   Tooltip,
-// //   Button,
-// //   Chip
-// // } from '@mui/material';
-// // import {
-// //   Edit as EditIcon,
-// //   Delete as DeleteIcon,
-// //   Add as AddIcon,
-// //   Phone as PhoneIcon,
-// //   Email as EmailIcon
-// // } from '@mui/icons-material';
-// import CustomerForm from '../../components/customers/CustomerForm';
-// import Notification from '../../components/common/Notification';
-
-// const Customers = () => {
-//   const [customers, setCustomers] = useState([ {
-//     id: 1,
-//     name: 'John Doe',
-//     email: 'john@example.com',
-//     phone: '123-456-7890',
-//     company: 'Tech Corp',
-//     status: 'active',
-//     value: 50000
-//   },
-//   {
-//     id: 2,
-//     name: 'Jane Smith',
-//     email: 'jane@example.com',
-//     phone: '098-765-4321',
-//     company: 'Design Co',
-//     status: 'inactive',
-//     value: 25000
-//   }]);
-//   const [loading, setLoading] = useState(true);
-//   const [openForm, setOpenForm] = useState(false);
-//   const [selectedCustomer, setSelectedCustomer] = useState(null);
-//   const [notification, setNotification] = useState({
-//     open: false,
-//     message: '',
-//     severity: 'success'
-//   });
-
-//   useEffect(() => {
-//     fetchCustomers();
-//   }, []);
-
-//   const fetchCustomers = async () => {
-//     try {
-//       setLoading(true);
-//       const response = await customerService.getCustomers();
-//       setCustomers(response);
-//     } catch (error) {
-//       showNotification('Error fetching customers', 'error');
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-
-//   const showNotification = (message, severity = 'success') => {
-//     setNotification({
-//       open: true,
-//       message,
-//       severity
-//     });
-//   };
-
-//   const handleCloseNotification = () => {
-//     setNotification(prev => ({ ...prev, open: false }));
-//   };
-
-//   const handleAddCustomer = async (formData) => {
-//     try {
-//       const response = await customerService.createCustomer(formData);
-//       setCustomers([...customers, response]);
-//       setOpenForm(false);
-//       showNotification('Customer added successfully');
-//     } catch (error) {
-//       showNotification(error.message || 'Error adding customer', 'error');
-//     }
-//   };
-
-//   const handleEditCustomer = async (formData) => {
-//     try {
-//       const response = await customerService.updateCustomer(selectedCustomer.id, formData);
-//       setCustomers(customers.map(customer => 
-//         customer.id === selectedCustomer.id ? response : customer
-//       ));
-//       setSelectedCustomer(null);
-//       setOpenForm(false);
-//       showNotification('Customer updated successfully');
-//     } catch (error) {
-//       showNotification(error.message || 'Error updating customer', 'error');
-//     }
-//   };
-
-//   const handleDelete = async (customerId) => {
-//     if (window.confirm('Are you sure you want to delete this customer?')) {
-//       try {
-//         await customerService.deleteCustomer(customerId);
-//         setCustomers(customers.filter(customer => customer.id !== customerId));
-//         showNotification('Customer deleted successfully');
-//       } catch (error) {
-//         showNotification(error.message || 'Error deleting customer', 'error');
-//       }
-//     }
-//   };
-
-//   if (loading) {
-//     return (
-//       <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
-//         <CircularProgress />
-//       </Box>
-//     );
-//   }
-
-//   return (
-//     <Box sx={{ p: 3 }}>
-//       {/* ... existing JSX code ... */}
-      
-//       <CustomerForm
-//         open={openForm}
-//         onClose={() => {
-//           setOpenForm(false);
-//           setSelectedCustomer(null);
-//         }}
-//         onSubmit={selectedCustomer ? handleEditCustomer : handleAddCustomer}
-//         initialData={selectedCustomer}
-//       />
-
-//       <Notification
-//         open={notification.open}
-//         message={notification.message}
-//         severity={notification.severity}
-//         onClose={handleCloseNotification}
-//       />
-//     </Box>
-//   );
-// };
-
-// export default Customers;

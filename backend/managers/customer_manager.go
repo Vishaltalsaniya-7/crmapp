@@ -40,6 +40,7 @@ func CreateCustomer(customerRequest request.CreateCustomerRequest) (response.Cus
 		Email:     customerRequest.Email,
 		Phone:     customerRequest.Phone,
 		Address:   customerRequest.Address,
+		Company:   customerRequest.Company,
 		CreatedAt: time.Time{},
 		// UpdatedAt: currentTime.Format("2006-01-02 15:04:05"),
 	}
@@ -59,6 +60,7 @@ func CreateCustomer(customerRequest request.CreateCustomerRequest) (response.Cus
 		Email:     newUser.Email,
 		Phone:     newUser.Phone,
 		Address:   newUser.Address,
+		Company:  newUser.Company,
 		CreatedAt: newUser.CreatedAt.Format("2006-01-02 15:04:05"),
 	}
 
@@ -116,6 +118,7 @@ func GetAllCustomer(pageSize int, pageNo int, order string, orderby string, sear
 			Email:     customer.Email,
 			Phone:     customer.Phone,
 			Address:   customer.Address,
+			Company:  customer.Company,
 			CreatedAt: customer.CreatedAt.Format("2006-01-02 15:04:05"),
 		})
 	}
@@ -137,6 +140,7 @@ func UpdateCustomer(id int, customerRequest request.CreateCustomerRequest) (resp
 	customer.Email = customerRequest.Email
 	customer.Phone = customerRequest.Phone
 	customer.Address = customerRequest.Address
+	customer.Company = customerRequest.Company
 	// user.UpdatedAt = time.Now().Format("2006-01-02 15:04:05")
 
 	_, err = o.Update(&customer)
@@ -149,6 +153,7 @@ func UpdateCustomer(id int, customerRequest request.CreateCustomerRequest) (resp
 		Email:     customer.Email,
 		Phone:     customer.Phone,
 		Address:   customer.Address,
+		Company:   customer.Company,
 		CreatedAt: customer.CreatedAt.Format("2006-01-02 15:04:05"),
 	}
 
@@ -170,8 +175,8 @@ func DeleteCustomer(id int) error {
 	return nil
 }
 
-func GetCustomerById(id int) (response.CustomerResponse,error){
-	o :=orm.NewOrm()
+func GetCustomerById(id int) (response.CustomerResponse, error) {
+	o := orm.NewOrm()
 	customer := models.Customer{Id: id}
 
 	err := o.Read(&customer)
@@ -187,6 +192,7 @@ func GetCustomerById(id int) (response.CustomerResponse,error){
 		Email:     customer.Email,
 		Phone:     customer.Phone,
 		Address:   customer.Address,
+		Company:   customer.Company,
 		CreatedAt: customer.CreatedAt.Format("2006-01-02 15:04:05"),
 	}
 

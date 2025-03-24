@@ -4,6 +4,9 @@ import {
   IconButton,
   Chip,
   Tooltip,
+  Snackbar,
+  Alert,
+  Typography
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -11,71 +14,83 @@ import {
   Delete as DeleteIcon,
   ArrowForward as ConvertIcon,
 } from '@mui/icons-material';
-import PageHeader from '../../components/common/PageHeader';
-import SearchBar from '../../components/common/SearchBar';
-import FilterBar from '../../components/common/FilterBar';
-import DataTable from '../../components/common/DataTable';
+import PageHeader from '../common/PageHeader';
+import SearchBar from '../common/SearchBar';
+import FilterBar from '../common/FilterBar';
+import DataTable from '../common/DataTable';
 import LeadForm from './LeadForm';
-import api from '../../services/api';
 
 const Leads = () => {
-  const [leads, setLeads] = useState([]);
+  const [leads, setLeads] = useState({
+    leads: {
+      lead: [],
+      last_page: 1,
+      page_no: 1,
+      per_page: 10,
+      total_documents: 0
+    }
+  });
   const [loading, setLoading] = useState(true);
   const [openForm, setOpenForm] = useState(false);
   const [selectedLead, setSelectedLead] = useState(null);
   const [filters, setFilters] = useState({});
   const [searchTerm, setSearchTerm] = useState('');
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: '',
+    severity: 'success'
+  });
 
   const columns = [
-    { id: 'name', label: 'Name' },
-    { id: 'company', label: 'Company' },
-    { id: 'email', label: 'Email' },
-    { id: 'phone', label: 'Phone' },
+    {
+      id: 'customer',
+      label: 'Customer',
+      render: (row) => `Customer ${row.customer_id}`
+    },
+    {
+      id: 'source',
+      label: 'Source',
+      render: (row) => row.source || '-'
+    },
     {
       id: 'status',
       label: 'Status',
-      render: (value) => (
+      render: (row) => (
         <Chip
-          label={value}
+          label={row.status}
           color={
-            value === 'Hot' ? 'error' :
-            value === 'Warm' ? 'warning' :
-            value === 'Cold' ? 'default' : 'primary'
+            row.status === 'Won' ? 'success' :
+            row.status === 'Lost' ? 'error' :
+            row.status === 'Negotiation' ? 'warning' : 'default'
           }
           size="small"
+          sx={{ minWidth: '80px' }}
         />
       )
     },
-    { id: 'source', label: 'Source' },
+    {
+      id: 'created_at',
+      label: 'Created At',
+      render: (row) => row.created_at ? new Date(row.created_at).toLocaleDateString() : '-'
+    },
     {
       id: 'actions',
       label: 'Actions',
-      render: (_, lead) => (
+      render: (row) => (
         <Box sx={{ display: 'flex', gap: 1 }}>
-          <Tooltip title="Convert to Customer">
-            <IconButton
-              size="small"
-              color="success"
-              onClick={() => handleConvertToCustomer(lead)}
-            >
-              <ConvertIcon />
-            </IconButton>
-          </Tooltip>
           <Tooltip title="Edit">
-            <IconButton
-              size="small"
-              onClick={() => handleEdit(lead)}
-            >
+            <IconButton size="small" onClick={() => handleEdit(row)}>
               <EditIcon />
             </IconButton>
           </Tooltip>
           <Tooltip title="Delete">
-            <IconButton
-              size="small"
-              color="error"
-              onClick={() => handleDelete(lead.id)}
-            >
+            <IconButton size="small" color="error" onClick={() => handleDelete(row.id)}>
               <DeleteIcon />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Convert to Customer">
+            <IconButton size="small" color="primary" onClick={() => handleConvertToCustomer(row.id)}>
+              <ConvertIcon />
             </IconButton>
           </Tooltip>
         </Box>
@@ -90,21 +105,32 @@ const Leads = () => {
 
   useEffect(() => {
     fetchLeads();
-  }, [filters, searchTerm]);
+  }, [filters, searchTerm, leads.leads.page_no]);
 
   const fetchLeads = async () => {
     try {
       setLoading(true);
-      const response = await api.getLeads({ filters, search: searchTerm });
+      const queryParams = new URLSearchParams({
+        ...filters,
+        search: searchTerm,
+        page: leads.leads.page_no,
+        per_page: leads.leads.per_page
+      }).toString();
+
+      const response = await fetch(`http://localhost:8082/lead?${queryParams}`);
+      if (!response.ok) throw new Error('Failed to fetch leads');
       const data = await response.json();
-      if (response.ok) {
-        setLeads(data);
-      }
+      setLeads(data);
     } catch (error) {
       console.error('Error fetching leads:', error);
+      showSnackbar(error.message, 'error');
     } finally {
       setLoading(false);
     }
+  };
+
+  const showSnackbar = (message, severity = 'success') => {
+    setSnackbar({ open: true, message, severity });
   };
 
   const handleAdd = () => {
@@ -118,43 +144,70 @@ const Leads = () => {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this lead?')) {
-      try {
-        const response = await api.deleteLead(id);
-        if (response.ok) {
-          fetchLeads();
-        }
-      } catch (error) {
-        console.error('Error deleting lead:', error);
-      }
+    if (!id || !window.confirm('Are you sure you want to delete this lead?')) return;
+    
+    try {
+      const response = await fetch(`http://localhost:8082/lead/${id}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) throw new Error('Failed to delete lead');
+      
+      showSnackbar('Lead deleted successfully');
+      await fetchLeads();
+    } catch (error) {
+      console.error('Error deleting lead:', error);
+      showSnackbar(error.message, 'error');
     }
   };
 
-  const handleConvertToCustomer = async (lead) => {
-    if (window.confirm('Convert this lead to a customer?')) {
-      try {
-        const response = await api.convertLeadToCustomer(lead.id);
-        if (response.ok) {
-          fetchLeads();
-        }
-      } catch (error) {
-        console.error('Error converting lead:', error);
-      }
+  const handleConvertToCustomer = async (id) => {
+    if (!id || !window.confirm('Convert this lead to a customer?')) return;
+
+    try {
+      const response = await fetch(`http://localhost:8082/lead/${id}/convert`, {
+        method: 'POST',
+      });
+      if (!response.ok) throw new Error('Failed to convert lead to customer');
+
+      showSnackbar('Lead converted to customer successfully');
+      await fetchLeads();
+    } catch (error) {
+      console.error('Error converting lead:', error);
+      showSnackbar(error.message, 'error');
     }
   };
 
   const handleSubmit = async (leadData) => {
     try {
-      if (selectedLead) {
-        await api.updateLead(selectedLead.id, leadData);
-      } else {
-        await api.createLead(leadData);
-      }
+      const url = selectedLead 
+        ? `http://localhost:8082/lead/${selectedLead.id}`
+        : 'http://localhost:8082/lead';
+
+      const response = await fetch(url, {
+        method: selectedLead ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(leadData),
+      });
+
+      if (!response.ok) throw new Error(selectedLead ? 'Failed to update lead' : 'Failed to create lead');
+
+      showSnackbar(`Lead ${selectedLead ? 'updated' : 'created'} successfully`);
       setOpenForm(false);
-      fetchLeads();
+      await fetchLeads();
     } catch (error) {
       console.error('Error saving lead:', error);
+      showSnackbar(error.message, 'error');
     }
+  };
+
+  const handlePageChange = (newPage) => {
+    setLeads(prev => ({
+      ...prev,
+      leads: {
+        ...prev.leads,
+        page_no: newPage
+      }
+    }));
   };
 
   return (
@@ -182,8 +235,13 @@ const Leads = () => {
 
       <DataTable
         columns={columns}
-        data={leads}
+        data={leads?.leads?.lead || []}
         loading={loading}
+        pagination={{
+          page: leads?.leads?.page_no || 1,
+          totalPages: leads?.leads?.last_page || 1,
+          onPageChange: handlePageChange
+        }}
       />
 
       <LeadForm
@@ -192,6 +250,20 @@ const Leads = () => {
         onClose={() => setOpenForm(false)}
         onSubmit={handleSubmit}
       />
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+      >
+        <Alert
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          severity={snackbar.severity}
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

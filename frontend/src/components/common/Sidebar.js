@@ -14,6 +14,7 @@ import {
   People as CustomersIcon,
   TrendingUp as LeadsIcon,
   Group as UsersIcon,
+  Info as AboutIcon,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 
@@ -24,6 +25,7 @@ const menuItems = [
   { text: 'Customers', icon: <CustomersIcon />, path: '/customers' },
   { text: 'Leads', icon: <LeadsIcon />, path: '/leads' },
   { text: 'Users', icon: <UsersIcon />, path: '/users' },
+  { text: 'About Us', icon: <AboutIcon />, path: '/about' },
 ];
 
 const Sidebar = () => {

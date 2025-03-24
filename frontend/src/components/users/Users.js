@@ -1,9 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   IconButton,
   Chip,
   Tooltip,
+  Snackbar,
+  Alert,
+  Typography
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -17,12 +20,34 @@ import DataTable from '../common/DataTable';
 import UserForm from './UserForm';
 
 const Users = () => {
-  const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const initialUsers = [
+    {
+      id: 1,
+      username: 'admin',
+      email: 'admin@example.com',
+      role: 'admin',
+      created_at: new Date().toISOString()
+    },
+    {
+      id: 2,
+      username: 'user1',
+      email: 'user1@example.com',
+      role: 'user',
+      created_at: new Date().toISOString()
+    }
+  ];
+
+  const [users, setUsers] = useState(initialUsers);
+  const [loading, setLoading] = useState(false);
   const [openForm, setOpenForm] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [filters, setFilters] = useState({});
   const [searchTerm, setSearchTerm] = useState('');
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: '',
+    severity: 'success'
+  });
 
   const columns = [
     { id: 'username', label: 'Username' },
@@ -32,9 +57,10 @@ const Users = () => {
       label: 'Role',
       render: (row) => (
         <Chip
-          label={row.role}
-          color={row.role === 'admin' ? 'primary' : 'default'}
+          label={row.role || 'user'}
+          color={row.role === 'admin' ? 'primary' : 'secondary'}
           size="small"
+          sx={{ minWidth: '80px', textAlign: 'center' }}
         />
       )
     },
@@ -59,31 +85,16 @@ const Users = () => {
             </IconButton>
           </Tooltip>
         </Box>
-      ),
-    },
+      )
+    }
   ];
 
   const filterOptions = [
-    { id: 'role', label: 'Role', options: ['admin', 'user'] },
+    { id: 'role', label: 'Role', options: ['admin', 'user'] }
   ];
 
-  useEffect(() => {
-    fetchUsers();
-  }, [filters, searchTerm]);
-
-  const fetchUsers = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch('http://localhost:8082/user');
-      if (!response.ok) throw new Error('Failed to fetch users');
-      const data = await response.json();
-      setUsers(data);
-    } catch (error) {
-      console.error('Error fetching users:', error);
-      setUsers([]);
-    } finally {
-      setLoading(false);
-    }
+  const showSnackbar = (message, severity = 'success') => {
+    setSnackbar({ open: true, message, severity });
   };
 
   const handleAdd = () => {
@@ -96,43 +107,72 @@ const Users = () => {
     setOpenForm(true);
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = (id) => {
     if (window.confirm('Are you sure you want to delete this user?')) {
-      try {
-        const response = await fetch(`http://localhost:8082/user/${id}`, {
-          method: 'DELETE',
-        });
-        if (response.ok) {
-          fetchUsers();
-        }
-      } catch (error) {
-        console.error('Error deleting user:', error);
-      }
+      setUsers(users.filter(user => user.id !== id));
+      showSnackbar('User deleted successfully');
     }
   };
 
-  const handleSubmit = async (userData) => {
+  const handleSubmit = (userData) => {
     try {
-      const url = selectedUser 
-        ? `http://localhost:8082/user/${selectedUser.id}`
-        : 'http://localhost:8082/user';
-      
-      const response = await fetch(url, {
-        method: selectedUser ? 'PUT' : 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(userData),
-      });
-
-      if (response.ok) {
-        setOpenForm(false);
-        fetchUsers();
+      if (selectedUser) {
+        // Update existing user
+        setUsers(users.map(user => 
+          user.id === selectedUser.id 
+            ? {
+                ...user,
+                username: userData.username.trim(),
+                email: userData.email.trim(),
+                role: userData.role || 'user',
+                password: userData.password
+              }
+            : user
+        ));
+      } else {
+        // Add new user
+        const newUser = {
+          id: Math.max(...users.map(u => u.id), 0) + 1,
+          username: userData.username.trim(),
+          email: userData.email.trim(),
+          role: userData.role || 'user',
+          password: userData.password,
+          created_at: new Date().toISOString()
+        };
+        setUsers([...users, newUser]);
       }
+
+      showSnackbar(`User ${selectedUser ? 'updated' : 'created'} successfully`);
+      setOpenForm(false);
     } catch (error) {
       console.error('Error saving user:', error);
+      showSnackbar(error.message, 'error');
     }
   };
+
+  const handleSearch = (term) => {
+    setSearchTerm(term);
+  };
+
+  const handleFilterChange = (filterId, value) => {
+    setFilters(prev => ({
+      ...prev,
+      [filterId]: value
+    }));
+  };
+
+  const filteredUsers = users.filter(user => {
+    const matchesSearch = searchTerm
+      ? user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.email.toLowerCase().includes(searchTerm.toLowerCase())
+      : true;
+
+    const matchesRole = filters.role
+      ? user.role === filters.role
+      : true;
+
+    return matchesSearch && matchesRole;
+  });
 
   return (
     <Box sx={{ p: 3 }}>
@@ -146,22 +186,28 @@ const Users = () => {
 
       <Box sx={{ mb: 3 }}>
         <SearchBar
-          onSearch={setSearchTerm}
+          onSearch={handleSearch}
           placeholder="Search users..."
         />
         <FilterBar
           filters={filterOptions}
           activeFilters={filters}
-          onFilterChange={(id, value) => setFilters({ ...filters, [id]: value })}
+          onFilterChange={handleFilterChange}
           onClearFilters={() => setFilters({})}
         />
       </Box>
 
-      <DataTable
-        columns={columns}
-        data={users}
-        loading={loading}
-      />
+      {filteredUsers.length === 0 ? (
+        <Typography color="text.secondary" align="center" sx={{ my: 2 }}>
+          No users found
+        </Typography>
+      ) : (
+        <DataTable
+          columns={columns}
+          data={filteredUsers}
+          loading={loading}
+        />
+      )}
 
       <UserForm
         open={openForm}
@@ -169,6 +215,20 @@ const Users = () => {
         onClose={() => setOpenForm(false)}
         onSubmit={handleSubmit}
       />
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+      >
+        <Alert
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          severity={snackbar.severity}
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

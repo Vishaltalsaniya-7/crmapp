@@ -9,6 +9,7 @@ import Customers from './pages/customers/Customers';
 import Leads from './pages/leads/Leads';
 // import Users from './pages/users/Users';
 import Users from './components/users/Users';
+import AboutUs from './components/about/AboutUs';
 
 import PrivateRoute from './components/auth/PrivateRoute';
 
@@ -24,7 +25,9 @@ const App = () => {
           <Route path="/customers" element={<PrivateRoute><Customers /></PrivateRoute>} />
           <Route path="/leads" element={<PrivateRoute><Leads /></PrivateRoute>} />
           <Route path="/users" element={<PrivateRoute><Users /></PrivateRoute>} />
+          <Route path="/about" element={<PrivateRoute><AboutUs /></PrivateRoute>} />
           <Route path="/" element={<Navigate to="/register" replace />} />
+       
         </Route>
       </Routes>
     </AuthProvider>

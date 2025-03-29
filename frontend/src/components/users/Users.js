@@ -1,47 +1,25 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   IconButton,
-  Chip,
   Tooltip,
   Snackbar,
   Alert,
-  Typography
 } from '@mui/material';
 import {
-  Add as AddIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
 } from '@mui/icons-material';
 import PageHeader from '../common/PageHeader';
 import SearchBar from '../common/SearchBar';
-import FilterBar from '../common/FilterBar';
 import DataTable from '../common/DataTable';
 import UserForm from './UserForm';
 
 const Users = () => {
-  const initialUsers = [
-    {
-      id: 1,
-      username: 'admin',
-      email: 'admin@example.com',
-      role: 'admin',
-      created_at: new Date().toISOString()
-    },
-    {
-      id: 2,
-      username: 'user1',
-      email: 'user1@example.com',
-      role: 'user',
-      created_at: new Date().toISOString()
-    }
-  ];
-
-  const [users, setUsers] = useState(initialUsers);
-  const [loading, setLoading] = useState(false);
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [openForm, setOpenForm] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
-  const [filters, setFilters] = useState({});
   const [searchTerm, setSearchTerm] = useState('');
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -52,23 +30,7 @@ const Users = () => {
   const columns = [
     { id: 'username', label: 'Username' },
     { id: 'email', label: 'Email' },
-    {
-      id: 'role',
-      label: 'Role',
-      render: (row) => (
-        <Chip
-          label={row.role || 'user'}
-          color={row.role === 'admin' ? 'primary' : 'secondary'}
-          size="small"
-          sx={{ minWidth: '80px', textAlign: 'center' }}
-        />
-      )
-    },
-    {
-      id: 'created_at',
-      label: 'Created At',
-      render: (row) => new Date(row.created_at).toLocaleDateString()
-    },
+    { id: 'role', label: 'Role' },
     {
       id: 'actions',
       label: 'Actions',
@@ -85,16 +47,37 @@ const Users = () => {
             </IconButton>
           </Tooltip>
         </Box>
-      )
+      ),
+    },
+  ];
+
+  useEffect(() => {
+    fetchUsers();
+  }, [searchTerm]);
+
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('token');
+    return {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    };
+  };
+
+  const fetchUsers = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(`http://localhost:8082/user${searchTerm ? `?search=${searchTerm}` : ''}`, {
+        headers: getAuthHeaders()
+      });
+      if (!response.ok) throw new Error('Failed to fetch users');
+      const data = await response.json();
+      setUsers(data || []);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      showSnackbar(error.message, 'error');
+    } finally {
+      setLoading(false);
     }
-  ];
-
-  const filterOptions = [
-    { id: 'role', label: 'Role', options: ['admin', 'user'] }
-  ];
-
-  const showSnackbar = (message, severity = 'success') => {
-    setSnackbar({ open: true, message, severity });
   };
 
   const handleAdd = () => {
@@ -107,72 +90,63 @@ const Users = () => {
     setOpenForm(true);
   };
 
-  const handleDelete = (id) => {
-    if (window.confirm('Are you sure you want to delete this user?')) {
-      setUsers(users.filter(user => user.id !== id));
+  const handleDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this user?')) return;
+
+    try {
+      const response = await fetch(`http://localhost:8082/user/${id}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders()
+      });
+      if (!response.ok) throw new Error('Failed to delete user');
+      
       showSnackbar('User deleted successfully');
+      fetchUsers();
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      showSnackbar(error.message, 'error');
     }
   };
 
-  const handleSubmit = (userData) => {
+  const handleSubmit = async (userData) => {
     try {
-      if (selectedUser) {
-        // Update existing user
-        setUsers(users.map(user => 
-          user.id === selectedUser.id 
-            ? {
-                ...user,
-                username: userData.username.trim(),
-                email: userData.email.trim(),
-                role: userData.role || 'user',
-                password: userData.password
-              }
-            : user
-        ));
-      } else {
-        // Add new user
-        const newUser = {
-          id: Math.max(...users.map(u => u.id), 0) + 1,
-          username: userData.username.trim(),
-          email: userData.email.trim(),
-          role: userData.role || 'user',
-          password: userData.password,
-          created_at: new Date().toISOString()
-        };
-        setUsers([...users, newUser]);
+      const url = selectedUser 
+        ? `http://localhost:8082/user/${selectedUser.id}`
+        : 'http://localhost:8082/user';
+
+      const formattedData = {
+        username: userData.username,
+        email: userData.email,
+        password: userData.password,
+        role: userData.role.toLowerCase()
+      };
+
+      const response = await fetch(url, {
+        method: selectedUser ? 'PUT' : 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(formattedData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || (selectedUser ? 'Failed to update user' : 'Failed to create user'));
       }
+
+      const result = await response.json();
+      console.log('API Response:', result);
 
       showSnackbar(`User ${selectedUser ? 'updated' : 'created'} successfully`);
       setOpenForm(false);
+      fetchUsers();
     } catch (error) {
       console.error('Error saving user:', error);
       showSnackbar(error.message, 'error');
     }
   };
 
-  const handleSearch = (term) => {
-    setSearchTerm(term);
+  const showSnackbar = (message, severity = 'success') => {
+    setSnackbar({ open: true, message, severity });
   };
-
-  const handleFilterChange = (filterId, value) => {
-    setFilters(prev => ({
-      ...prev,
-      [filterId]: value
-    }));
-  };
-
-  const filteredUsers = users.filter(user => {
-    const matchesSearch = searchTerm
-      ? user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchTerm.toLowerCase())
-      : true;
-
-    const matchesRole = filters.role
-      ? user.role === filters.role
-      : true;
-
-    return matchesSearch && matchesRole;
-  });
 
   return (
     <Box sx={{ p: 3 }}>
@@ -180,34 +154,22 @@ const Users = () => {
         title="Users"
         action={true}
         actionText="Add User"
-        actionIcon={<AddIcon />}
         onActionClick={handleAdd}
       />
 
       <Box sx={{ mb: 3 }}>
         <SearchBar
-          onSearch={handleSearch}
+          onSearch={setSearchTerm}
           placeholder="Search users..."
-        />
-        <FilterBar
-          filters={filterOptions}
-          activeFilters={filters}
-          onFilterChange={handleFilterChange}
-          onClearFilters={() => setFilters({})}
         />
       </Box>
 
-      {filteredUsers.length === 0 ? (
-        <Typography color="text.secondary" align="center" sx={{ my: 2 }}>
-          No users found
-        </Typography>
-      ) : (
-        <DataTable
-          columns={columns}
-          data={filteredUsers}
-          loading={loading}
-        />
-      )}
+      <DataTable
+        columns={columns}
+        data={users}
+        loading={loading}
+        emptyMessage="No users found"
+      />
 
       <UserForm
         open={openForm}
@@ -220,6 +182,7 @@ const Users = () => {
         open={snackbar.open}
         autoHideDuration={6000}
         onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
       >
         <Alert
           onClose={() => setSnackbar({ ...snackbar, open: false })}

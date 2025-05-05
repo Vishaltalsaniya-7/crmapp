@@ -52,7 +52,7 @@ func main() {
 	userRoutes.DELETE("/:id", userController.DeleteUser)
 
 	customerRoutes := e.Group("/customer")
-	customerRoutes.Use(midd.AuthMiddleware)
+	// customerRoutes.Use(midd.AuthMiddleware)
 	customerRoutes.POST("", controller.CreateCustomer)
 	customerRoutes.GET("", controller.GetAllCustomer)
 	customerRoutes.GET("/:id", controller.GetCustomerById)
@@ -60,7 +60,7 @@ func main() {
 	customerRoutes.DELETE("/:id", controller.DeleteCustomer)
 
 	leadRoutes := e.Group("/lead")
-	leadRoutes.Use(midd.AuthMiddleware)
+	// leadRoutes.Use(midd.AuthMiddleware)
 	leadRoutes.POST("", controller.CreateLead)
 	leadRoutes.GET("", controller.GetLead)
 	leadRoutes.PUT("/:id", controller.UpdateLead)
